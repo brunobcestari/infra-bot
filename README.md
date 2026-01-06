@@ -103,4 +103,4 @@ poetry run pytest --cov=app
 
 ## License
 
-MIT
+GPL-3.0
