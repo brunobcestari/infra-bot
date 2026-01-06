@@ -6,6 +6,9 @@ config.json
 mfa.db
 mfa_qr_codes
 
+# Kubernetes secrets (keep template, ignore filled version)
+k8s/secret.yaml
+
 # SSL certificates (contain router-specific data)
 app/mikrotik/certs/*.crt
 app/mikrotik/certs/*.pem
