@@ -17,6 +17,8 @@ spec:
       labels:
         app: infra-bot
     spec:
+      hostNetwork: true  # Access host network to reach MikroTik routers
+      dnsPolicy: ClusterFirstWithHostNet  # Use cluster DNS even with hostNetwork
       containers:
       - name: telegram-bot
         image: ghcr.io/brunobcestari/infra-bot:latest
@@ -30,7 +32,7 @@ spec:
           subPath: config.json
           readOnly: true
         - name: certs
-          mountPath: /app/mikrotik/certs
+          mountPath: /app/app/mikrotik/certs
           readOnly: true
         - name: data
           mountPath: /data

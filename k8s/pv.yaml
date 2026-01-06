@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: infra-bot-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  mountOptions:
+    - nfsvers=4.1
+  nfs: # NFS server details -- change as needed
+    server: 192.168.88.30
+    path: /mnt/k8s-storage/nfs-share/infra-bot 
