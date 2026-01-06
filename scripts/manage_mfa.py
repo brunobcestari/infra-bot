@@ -104,10 +104,12 @@ def cmd_enroll(user_id: int) -> None:
     ascii_qr = generate_qr_code_ascii(uri)
     print(ascii_qr)
 
-    # Display manual secret
+    # Optionally display manual secret
     print("\n" + "-" * 70)
-    print("🔑 Manual entry secret (if QR scan doesn't work):")
-    print(f"\n    {secret}\n")
+    print("🔑 A manual entry secret is available if QR scan doesn't work.")
+    show_secret = input("Do you want to display the manual secret now? [y/N]: ")
+    if show_secret.lower() == "y":
+        print(f"\n    {secret}\n")
     print("-" * 70)
 
     # Save QR code as PNG
