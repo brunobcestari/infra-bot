@@ -3,7 +3,7 @@
 .env.local
 .env.*.local
 config.json
-mfa.db
+data/
 mfa_qr_codes
 
 # Kubernetes secrets (keep template, ignore filled version)
