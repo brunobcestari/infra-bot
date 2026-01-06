@@ -2,6 +2,11 @@
   "telegram": {
     "admin_ids": [123456789]
   },
+  "mfa": {
+    "enabled": true,
+    "session_duration_minutes": 15,
+    "db_path": "/data/mfa.db"
+  },
   "devices": {
     "mikrotik": [
       {

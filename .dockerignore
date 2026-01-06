@@ -1,0 +1,50 @@
+# Sensitive files - NEVER include in Docker image
+.env
+.env.*
+!.env.example
+config.json
+!config.example.json
+mfa.db
+mfa_qr_codes/
+*.crt
+*.key
+*.pem
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Documentation
+*.md
+!README.md
+
+# Kubernetes
+k8s/
+
+# Testing
+tests/
+.pytest_cache/
+
+# Dependencies (we install via poetry in Dockerfile)
+.venv/
+venv/

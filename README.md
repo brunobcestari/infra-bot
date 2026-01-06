@@ -8,7 +8,7 @@ A Telegram bot for managing network infrastructure. Currently supports MikroTik 
 - **System monitoring** - CPU, memory, disk, uptime
 - **Network info** - Interfaces, DHCP leases, logs
 - **Maintenance** - Check/install updates, reboot
-- **Secure** - Admin-only access, SSL/TLS connections
+- **Secure** - Admin-only access, SSL/TLS connections, MFA for critical operations
 
 ## Setup
 
@@ -36,6 +36,11 @@ Edit `config.json`:
   "telegram": {
     "admin_ids": [YOUR_TELEGRAM_USER_ID]
   },
+  "mfa": {
+    "enabled": true,
+    "session_duration_minutes": 15,
+    "db_path": "mfa.db"
+  },
   "devices": {
     "mikrotik": [
       {
@@ -55,6 +60,7 @@ Edit `config.json`:
 ```bash
 TELEGRAM_BOT_TOKEN="your-bot-token"
 MIKROTIK_MAIN_ROUTER_PASSWORD="your-password"
+MFA_ENCRYPTION_KEY="$(openssl rand -base64 32)"
 ```
 
 ### 5. Export SSL certificate from MikroTik
@@ -71,6 +77,18 @@ Copy the `.crt` file to `app/mikrotik/certs/`.
 /user group add name=telegram-api policy=read,write,api,rest-api,!ftp,!ssh,!telnet,!policy,!password
 /user add name=telegram-bot group=telegram-api password=your-password
 ```
+
+### 7. Enroll users in MFA
+
+```bash
+# Enroll a user by Telegram ID
+poetry run python scripts/manage_mfa.py enroll YOUR_TELEGRAM_USER_ID
+
+# Or with Docker
+docker-compose exec telegram_bot python scripts/manage_mfa.py enroll YOUR_TELEGRAM_USER_ID
+```
+
+Scan the QR code with your authenticator app (Google Authenticator, Authy, etc.).
 
 ## Run
 
@@ -91,8 +109,9 @@ docker compose up --build
 | `/leases` | DHCP leases |
 | `/logs` | Recent logs |
 | `/updates` | Check for updates |
-| `/upgrade` | Install updates |
-| `/reboot` | Reboot device |
+| `/upgrade` | Install updates (requires MFA) |
+| `/reboot` | Reboot device (requires MFA) |
+| `/mfa_status` | Check MFA enrollment status |
 
 ## Tests
 

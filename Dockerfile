@@ -26,6 +26,7 @@ WORKDIR /app
 
 COPY --from=builder --chown=botuser:botuser /app/.venv ./.venv
 COPY --chown=botuser:botuser app ./app
+COPY --chown=botuser:botuser scripts ./scripts
 
 USER botuser
 

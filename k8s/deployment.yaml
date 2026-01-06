@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infra-bot
+  namespace: infra-bot
+  labels:
+    app: infra-bot
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # Important for SQLite database
+  selector:
+    matchLabels:
+      app: infra-bot
+  template:
+    metadata:
+      labels:
+        app: infra-bot
+    spec:
+      containers:
+      - name: telegram-bot
+        image: ghcr.io/brunobcestari/infra-bot:latest
+        imagePullPolicy: Always
+        envFrom:
+        - secretRef:
+            name: infra-bot-secrets
+        volumeMounts:
+        - name: config
+          mountPath: /app/config.json
+          subPath: config.json
+          readOnly: true
+        - name: certs
+          mountPath: /app/mikrotik/certs
+          readOnly: true
+        - name: data
+          mountPath: /data
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+      volumes:
+      - name: config
+        configMap:
+          name: infra-bot-config
+      - name: certs
+        configMap:
+          name: infra-bot-certs
+      - name: data
+        persistentVolumeClaim:
+          claimName: infra-bot-data
