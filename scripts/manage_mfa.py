@@ -257,7 +257,6 @@ def cmd_export_qr(user_id: int) -> None:
         f.write(qr_buffer.read())
 
     print(f"\n💾 QR code saved to: {qr_path}")
-    print(f"🔑 Manual secret: {secret}\n")
 
 
 def print_usage() -> None:
