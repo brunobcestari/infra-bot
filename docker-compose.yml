@@ -3,4 +3,7 @@ services:
     build: .
     env_file:
       - .env
+    volumes:
+      - ./config.json:/app/config.json:ro
+      - ./app/mikrotik/certs:/app/mikrotik/certs:ro
     restart: unless-stopped
