@@ -1,0 +1,23 @@
+{
+  "telegram": {
+    "admin_ids": [123456789]
+  },
+  "devices": {
+    "mikrotik": [
+      {
+        "name": "Main Router",
+        "host": "192.168.88.1",
+        "port": 8729,
+        "username": "telegram-bot",
+        "ssl_cert": "mikrotik/certs/main_router.crt"
+      },
+      {
+        "name": "Office",
+        "host": "192.168.1.1",
+        "port": 8729,
+        "username": "telegram-bot",
+        "ssl_cert": "mikrotik/certs/office.crt"
+      }
+    ]
+  }
+}
