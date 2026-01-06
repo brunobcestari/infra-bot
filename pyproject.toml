@@ -6,10 +6,18 @@ authors = [
     {name = "Bruno Cestari",email = "brunobcestari@protonmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13,<4.0"
 dependencies = [
-    "python-telegram-bot (>=22.5,<23.0)",
-    "routeros-api (>=0.21.0,<0.22.0)"
+    "python-telegram-bot[job-queue] (>=22.5,<23.0)",
+    "routeros-api (>=0.21.0,<0.22.0)",
+    # MFA dependencies
+    "pyotp (>=2.9.0,<3.0.0)",
+    "qrcode[pil] (>=8.2,<9.0)",
+    "pillow (>=12.1.0,<13.0.0)",
+    "cryptography (>=46.0.3,<47.0.0)",
+    "bcrypt (>=5.0.0,<6.0.0)",
+    "python-dotenv (>=1.2.1,<2.0.0)"
+
 ]
 
 [project.optional-dependencies]
