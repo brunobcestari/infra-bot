@@ -6,4 +6,8 @@ services:
     volumes:
       - ./config.json:/app/config.json:ro
       - ./app/mikrotik/certs:/app/mikrotik/certs:ro
+      - ./mfa.db:/app/mfa.db:rw
     restart: unless-stopped
+
+volumes:
+  mfa_data:

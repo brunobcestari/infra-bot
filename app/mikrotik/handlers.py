@@ -15,6 +15,15 @@ from ..bot.formatters import format_bytes, format_uptime
 from ..config import get_config
 from .client import get_client, MikroTikClient
 
+try:
+    from ..mfa.decorators import requires_mfa, requires_mfa_callback
+except ImportError:
+    # MFA not available, create no-op decorators
+    def requires_mfa(func):
+        return func
+    def requires_mfa_callback(func):
+        return func
+
 logger = logging.getLogger(__name__)
 
 # Callback data prefixes
@@ -80,10 +89,15 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 *Maintenance:*
 /updates - Check for RouterOS updates
-/upgrade - Install available updates
-/reboot - Reboot the router
+/upgrade - Install available updates 🔐
+/reboot - Reboot the router 🔐
+
+*Security:*
+/mfa_status - Check MFA enrollment status
 
 /help - Show this message
+
+🔐 = Requires MFA authentication
 """
     await update.message.reply_text(help_text, parse_mode='Markdown')
 
@@ -134,6 +148,7 @@ async def cmd_updates(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
 
 @restricted
+@requires_mfa
 async def cmd_upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show device selector for upgrade."""
     await update.message.reply_text(
@@ -143,6 +158,7 @@ async def cmd_upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
 
 @restricted
+@requires_mfa
 async def cmd_reboot(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show device selector for reboot."""
     await update.message.reply_text(
@@ -154,6 +170,7 @@ async def cmd_reboot(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 # --- Callback Handlers ---
 
 @restricted_callback
+@requires_mfa_callback
 async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle all MikroTik callback queries."""
     query = update.callback_query
