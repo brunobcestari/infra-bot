@@ -1,0 +1,29 @@
+# Development docker-compose override
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  telegram_bot:
+    # Override: Build locally instead of pulling from registry
+    build: .
+    image: infra-bot:dev
+
+    # Ensure env_file is loaded (should inherit, but explicit is better)
+    env_file:
+      - .env
+
+    # Override: Remove resource limits for development
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+
+    # IMPORTANT: volumes are replaced, not merged, so we need to include ALL volumes
+    volumes:
+      # Base volumes (required)
+      - ./deploy/config.json:/app/config.json:ro
+      - ./deploy/certs:/app/certs:ro
+      - ./data:/data:rw
+      # Dev volumes (for live code changes)
+      - ./app:/app/app:ro
+      - ./scripts:/app/scripts:ro

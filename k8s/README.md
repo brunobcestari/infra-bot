@@ -45,7 +45,7 @@ The slug is derived from the device name (e.g., "Main Router" → `MAIN_ROUTER`)
 
 ### 2. Verify config.json
 
-Ensure your `config.json` in the project root contains:
+Ensure your `deploy/config.json` contains:
 - Your Telegram user ID in `admin_ids`
 - Correct MikroTik device configurations (host, port, username)
 - MFA settings (note: `db_path` should be `/data/mfa.db`)
@@ -68,7 +68,7 @@ Example:
         "host": "192.168.88.1",
         "port": 8729,
         "username": "telegram-bot",
-        "ssl_cert": "mikrotik/certs/main_router.crt"
+        "ssl_cert": "main_router.crt"
       }
     ]
   }
@@ -77,59 +77,101 @@ Example:
 
 ### 3. Add SSL Certificates
 
-Place your MikroTik SSL certificates in `app/mikrotik/certs/`.
-
-If you have multiple devices, update `kustomization.yaml`:
-```yaml
-configMapGenerator:
-  - name: infra-bot-certs
-    files:
-      - ../app/mikrotik/certs/main_router.crt
-      - ../app/mikrotik/certs/office.crt  # Add more as needed
-```
+Place your MikroTik SSL certificates in `deploy/certs/`.
 
 ## Deploy to Kubernetes
 
-1. **Apply the configuration**:
-   ```bash
-   kubectl apply -k k8s/
-   ```
+### Quick Deploy (Recommended)
 
-2. **Verify deployment**:
-   ```bash
-   # Check pods
-   kubectl get pods -n infra-bot
+Use the deployment script for automated deployment:
 
-   # Check if PVC is bound
-   kubectl get pvc -n infra-bot
+```bash
+cd k8s
+./deploy.sh
+```
 
-   # View logs
-   kubectl logs -n infra-bot -l app=infra-bot -f
-   ```
+The script will:
+- Verify all required files exist (config.json, certificates, secret.yaml)
+- Sync config.json and certificates to k8s/ directory
+- Apply all Kubernetes resources using kustomize (auto-generates ConfigMaps)
+- Wait for the deployment to be ready
 
-3. **Check the pod is running**:
-   ```bash
-   kubectl get pods -n infra-bot
-   ```
+**Note**: The script copies your config and certs to `k8s/` temporarily for deployment. These files are gitignored and won't be committed.
 
-   You should see:
-   ```
-   NAME                         READY   STATUS    RESTARTS   AGE
-   infra-bot-xxxxxxxxxx-xxxxx   1/1     Running   0          30s
-   ```
+### Manual Deploy
+
+If you prefer manual control:
+
+#### 1. Create ConfigMaps from your files
+
+First, create the ConfigMaps for your config.json and certificates:
+
+```bash
+# Create namespace first
+kubectl create namespace infra-bot
+
+# Create ConfigMap from config.json
+kubectl create configmap infra-bot-config \
+  --from-file=config.json=config.json \
+  -n infra-bot
+
+# Create ConfigMap from SSL certificates
+kubectl create configmap infra-bot-certs \
+  --from-file=main_router.crt=../deploy/certs/main_router.crt \
+  -n infra-bot
+
+# If you have multiple certificates, add them all:
+# kubectl create configmap infra-bot-certs \
+#   --from-file=main_router.crt=../deploy/certs/main_router.crt \
+#   --from-file=office.crt=../deploy/certs/office.crt \
+#   -n infra-bot
+```
+
+#### 2. Apply the Kubernetes resources
+
+```bash
+kubectl apply -k k8s/
+```
+
+#### 3. Verify deployment
+
+```bash
+# Check pods
+kubectl get pods -n infra-bot
+
+# Check if PVC is bound
+kubectl get pvc -n infra-bot
+
+# View logs
+kubectl logs -n infra-bot -l app=infra-bot -f
+```
+
+You should see:
+```
+NAME                         READY   STATUS    RESTARTS   AGE
+infra-bot-xxxxxxxxxx-xxxxx   1/1     Running   0          30s
+```
 
 ## Updating
 
 ### Update Configuration
 
-After changing `config.json` or certificates:
+After changing `config.json` or certificates in `deploy/`:
 
 ```bash
-# Reapply configuration
-kubectl apply -k k8s/
+cd k8s
+
+# Sync updated config and apply
+./sync-configs.sh
+kubectl apply -k .
 
 # Restart to pick up new config
 kubectl rollout restart deployment/infra-bot -n infra-bot
+```
+
+Or use the deploy script (does everything):
+```bash
+./deploy.sh
 ```
 
 ### Update Bot Code
