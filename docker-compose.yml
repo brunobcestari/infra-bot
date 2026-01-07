@@ -1,13 +1,40 @@
 services:
   telegram_bot:
-    build: .
+    image: ghcr.io/brunobcestari/infra-bot:latest
+    container_name: infra-bot
+    hostname: infra-bot
+
+    # Use host network to access MikroTik routers on local network
+    # Matches Kubernetes hostNetwork: true
+    network_mode: "host"
+
+    # Run as non-root user (matches Kubernetes securityContext)
+    user: "1000:1000"
+
     env_file:
       - .env
-    volumes:
-      - ./config.json:/app/config.json:ro
-      - ./app/mikrotik/certs:/app/mikrotik/certs:ro
-      - ./mfa.db:/app/mfa.db:rw
-    restart: unless-stopped
 
-volumes:
-  mfa_data:
+    volumes:
+      - ./deploy/config.json:/app/config.json:ro
+      - ./deploy/certs:/app/certs:ro
+      - ./data:/data:rw
+
+    # Resource limits (matches Kubernetes resources)
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'      # 1000m in Kubernetes
+          memory: 512M
+        reservations:
+          cpus: '0.1'      # 100m in Kubernetes
+          memory: 64M
+
+    # Health check for container monitoring
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    restart: unless-stopped

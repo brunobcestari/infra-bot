@@ -3,25 +3,25 @@ kind: Kustomization
 
 namespace: infra-bot
 
-# NOTE: Before deploying, copy secret.example.yaml to secret.yaml and fill in your credentials
 resources:
   - namespace.yaml
-  - secret.yaml  # Create this from secret.example.yaml
+  - secret.yaml
+  - pv.yaml
   - pvc.yaml
   - deployment.yaml
 
-# Generate ConfigMap from existing config.json file
+# Generate ConfigMaps from local files (synced from parent directory)
 configMapGenerator:
   - name: infra-bot-config
     files:
-      - ../config.json
+      - config.json
   - name: infra-bot-certs
     files:
-      - ../app/mikrotik/certs/main_router.crt
-      # Add more certificates as needed:
-      # - ../app/mikrotik/certs/office.crt
+      - certs/main_router.crt
+      # Add more certificates as needed
 
 # Add common labels to all resources
-commonLabels:
-  app: infra-bot
-  managed-by: kustomize
+labels:
+  - pairs:
+      app: infra-bot
+      managed-by: kustomize
