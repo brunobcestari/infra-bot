@@ -82,7 +82,19 @@ class MikroTikClient:
         with self.connect() as api:
             leases = api.get_resource('/ip/dhcp-server/lease')
             return leases.get()
-
+        
+    def get_services_all(self) -> list[dict]:
+        """Get all IP services on the router."""
+        with self.connect() as api:
+            services = api.get_resource('/ip/service')
+            return services.get()
+        
+    def get_services_enabled(self) -> list[dict]:
+        """Get enabled services on the router."""
+        with self.connect() as api:
+            services_enabled = api.get_resource('/ip/service').get(disabled='no',dynamic='no')
+            return services_enabled
+            
     # --- Update Commands ---
 
     def check_for_updates(self) -> dict:

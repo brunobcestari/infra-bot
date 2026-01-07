@@ -88,6 +88,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 /interfaces - Network interfaces
 /leases - DHCP leases
 /logs - Recent log entries
+/services_enabled - Enabled IP services
 
 *Maintenance:*
 /updates - Check for RouterOS updates
@@ -169,6 +170,13 @@ async def cmd_reboot(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         reply_markup=_device_keyboard("reboot_confirm")
     )
 
+@restricted
+async def cmd_services_enabled(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show device selector for enabled services."""
+    await update.message.reply_text(
+        "Select a device to view enabled IP services:",
+        reply_markup=_device_keyboard("services_enabled")
+    )
 
 # --- Callback Handlers ---
 
@@ -258,6 +266,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         "reboot_confirm": _handle_reboot_confirm,
         "reboot_yes": _handle_reboot_yes,
         "reboot_no": _handle_cancel,
+        "services_enabled": _handle_services_enabled,
     }
 
     handler = handlers.get(action)
@@ -361,6 +370,35 @@ async def _handle_leases(query, slug: str) -> None:
         logger.error(f"Leases error ({slug}): {e}")
         await query.edit_message_text(f"Failed to get DHCP leases for {client.device.name}")
 
+
+async def _handle_services_enabled(query, slug: str) -> None:
+    """Handle enabled services callback."""
+    client = get_client(slug)
+    if client is None:
+        await query.edit_message_text(f"Device not found: {slug}")
+        return
+
+    try:
+        services = client.get_services_enabled()
+        identity = client.get_identity()
+
+        if not services:
+            await query.edit_message_text(f"*{identity}*\n\nNo enabled IP services found.", parse_mode='Markdown')
+            return
+
+        lines = [f"*{identity}* - Enabled IP Services\n"]
+        for service in services:
+            name = service.get('name', '?')
+            port = service.get('port', '?')
+            protocol = service.get('proto', '?')
+            address = service.get('address', '?')
+            certificate = service.get('certificate', 'None')
+            lines.append(f"✅ *{name}*: Port *{port}*, Proto *{protocol}*, Address *{address}*, Cert: *{certificate}*")
+
+        await query.edit_message_text("\n".join(lines), parse_mode='Markdown')
+    except Exception as e:
+        logger.error(f"Enabled services error ({slug}): {e}")
+        await query.edit_message_text(f"Failed to get enabled IP services for {client.device.name}")
 
 async def _handle_logs(query, slug: str) -> None:
     """Handle logs callback."""
@@ -539,6 +577,7 @@ def register_handlers(app: Application) -> None:
     app.add_handler(CommandHandler("updates", cmd_updates))
     app.add_handler(CommandHandler("upgrade", cmd_upgrade))
     app.add_handler(CommandHandler("reboot", cmd_reboot))
+    app.add_handler(CommandHandler("services_enabled", cmd_services_enabled))
 
     # Callbacks (all MikroTik callbacks start with "mt:")
     app.add_handler(CallbackQueryHandler(callback_handler, pattern=f"^{CB_PREFIX}:"))
