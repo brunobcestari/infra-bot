@@ -117,6 +117,7 @@ docker compose up --build
 | `/updates` | Check for updates |
 | `/upgrade` | Install updates (requires MFA) |
 | `/reboot` | Reboot device (requires MFA) |
+| `/mfa_auth` | Authenticate and create/refresh MFA session |
 | `/mfa_status` | Check MFA enrollment status |
 
 ## Tests

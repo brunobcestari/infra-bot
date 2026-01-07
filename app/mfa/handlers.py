@@ -27,6 +27,46 @@ _session_manager: SessionManager | None = None
 # --- Status Command ---
 
 @restricted
+async def cmd_mfa_auth(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Initiate proactive MFA authentication to create/refresh session."""
+    user_id = update.effective_user.id
+
+    if not _mfa_db.is_user_enrolled(user_id):
+        await update.message.reply_text(
+            "❌ *MFA Not Enabled*\n\n"
+            "You are not enrolled in Multi-Factor Authentication.\n\n"
+            "Ask your infrastructure administrator to enroll you using:\n"
+            f"`python scripts/manage_mfa.py enroll {user_id}`",
+            parse_mode='Markdown'
+        )
+        return
+
+    # Check if user already has a valid session
+    has_session = _session_manager.has_valid_session(user_id)
+
+    if has_session:
+        session_info = _session_manager.get_session_info(user_id)
+        expires_at = session_info.get('expires_at', 'Unknown') if session_info else 'Unknown'
+
+        await update.message.reply_text(
+            "🔐 *MFA Session Active*\n\n"
+            f"You already have an active MFA session.\n"
+            f"Expires: {expires_at.split('.')[0]} UTC\n\n"
+            "To refresh your session, please enter your 6-digit authentication code:",
+            parse_mode='Markdown'
+        )
+    else:
+        await update.message.reply_text(
+            "🔐 *MFA Authentication*\n\n"
+            "Please enter your 6-digit authentication code:",
+            parse_mode='Markdown'
+        )
+
+    # Set flag to indicate proactive authentication
+    context.user_data['mfa_proactive_auth'] = True
+
+
+@restricted
 async def cmd_mfa_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show user's MFA enrollment and session status."""
     user_id = update.effective_user.id
@@ -74,19 +114,21 @@ async def cmd_mfa_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 # --- MFA Verification Handler ---
 
 async def handle_mfa_verification(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle TOTP code verification for command continuation.
+    """Handle TOTP code verification for command continuation or proactive auth.
 
-    This handler processes 6-digit codes sent by users who are attempting
-    to run MFA-protected commands.
+    This handler processes 6-digit codes sent by users who are:
+    - Attempting to run MFA-protected commands
+    - Proactively authenticating via /mfa_auth
     """
     user_id = update.effective_user.id
     message_text = update.message.text.strip()
 
-    # Check if there's a pending command or callback
+    # Check if there's a pending command, callback, or proactive auth
     pending_command = context.user_data.get('mfa_pending_command')
     pending_callback = context.user_data.get('mfa_pending_callback')
+    proactive_auth = context.user_data.get('mfa_proactive_auth', False)
 
-    if not pending_command and not pending_callback:
+    if not pending_command and not pending_callback and not proactive_auth:
         # Not in MFA verification flow, ignore
         return
 
@@ -143,6 +185,23 @@ async def handle_mfa_verification(update: Update, context: ContextTypes.DEFAULT_
 
     logger.info(f"User {user_id} successfully verified MFA")
 
+    # Get session details
+    session_info = _session_manager.get_session_info(user_id)
+    expires_at = session_info.get('expires_at', 'Unknown') if session_info else 'Unknown'
+
+    # Handle proactive authentication
+    if proactive_auth:
+        await update.message.reply_text(
+            f"✅ *Authentication Successful!*\n\n"
+            f"Your MFA session is now active for {_session_manager.default_duration} minutes.\n"
+            f"Expires: {expires_at.split('.')[0]} UTC\n\n"
+            f"You can now run protected commands like `/upgrade` and `/reboot`.",
+            parse_mode='Markdown'
+        )
+        context.user_data.pop('mfa_proactive_auth', None)
+        return
+
+    # Handle command/callback continuation
     await update.message.reply_text(
         f"✅ *Verification Successful!*\n\n"
         f"Your MFA session is active for {_session_manager.default_duration} minutes.\n\n"
@@ -182,6 +241,7 @@ def register_mfa_handlers(app: Application, mfa_db: MFADatabase, session_manager
     _session_manager = session_manager
 
     # Commands
+    app.add_handler(CommandHandler("mfa_auth", cmd_mfa_auth))
     app.add_handler(CommandHandler("mfa_status", cmd_mfa_status))
 
     # Message handler for TOTP codes (low priority, must be after command handlers)
