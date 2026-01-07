@@ -45,7 +45,7 @@ The slug is derived from the device name (e.g., "Main Router" → `MAIN_ROUTER`)
 
 ### 2. Verify config.json
 
-Ensure your `config.json` in the project root contains:
+Ensure your `deploy/config.json` contains:
 - Your Telegram user ID in `admin_ids`
 - Correct MikroTik device configurations (host, port, username)
 - MFA settings (note: `db_path` should be `/data/mfa.db`)
@@ -68,7 +68,7 @@ Example:
         "host": "192.168.88.1",
         "port": 8729,
         "username": "telegram-bot",
-        "ssl_cert": "mikrotik/certs/main_router.crt"
+        "ssl_cert": "main_router.crt"
       }
     ]
   }
@@ -77,7 +77,7 @@ Example:
 
 ### 3. Add SSL Certificates
 
-Place your MikroTik SSL certificates in `app/mikrotik/certs/`.
+Place your MikroTik SSL certificates in `deploy/certs/`.
 
 ## Deploy to Kubernetes
 
@@ -117,13 +117,13 @@ kubectl create configmap infra-bot-config \
 
 # Create ConfigMap from SSL certificates
 kubectl create configmap infra-bot-certs \
-  --from-file=main_router.crt=app/mikrotik/certs/main_router.crt \
+  --from-file=main_router.crt=../deploy/certs/main_router.crt \
   -n infra-bot
 
 # If you have multiple certificates, add them all:
 # kubectl create configmap infra-bot-certs \
-#   --from-file=main_router.crt=app/mikrotik/certs/main_router.crt \
-#   --from-file=office.crt=app/mikrotik/certs/office.crt \
+#   --from-file=main_router.crt=../deploy/certs/main_router.crt \
+#   --from-file=office.crt=../deploy/certs/office.crt \
 #   -n infra-bot
 ```
 
@@ -134,33 +134,29 @@ kubectl apply -k k8s/
 ```
 
 #### 3. Verify deployment
-   ```bash
-   # Check pods
-   kubectl get pods -n infra-bot
 
-   # Check if PVC is bound
-   kubectl get pvc -n infra-bot
+```bash
+# Check pods
+kubectl get pods -n infra-bot
 
-   # View logs
-   kubectl logs -n infra-bot -l app=infra-bot -f
-   ```
+# Check if PVC is bound
+kubectl get pvc -n infra-bot
 
-3. **Check the pod is running**:
-   ```bash
-   kubectl get pods -n infra-bot
-   ```
+# View logs
+kubectl logs -n infra-bot -l app=infra-bot -f
+```
 
-   You should see:
-   ```
-   NAME                         READY   STATUS    RESTARTS   AGE
-   infra-bot-xxxxxxxxxx-xxxxx   1/1     Running   0          30s
-   ```
+You should see:
+```
+NAME                         READY   STATUS    RESTARTS   AGE
+infra-bot-xxxxxxxxxx-xxxxx   1/1     Running   0          30s
+```
 
 ## Updating
 
 ### Update Configuration
 
-After changing `config.json` or certificates in the root directory:
+After changing `config.json` or certificates in `deploy/`:
 
 ```bash
 cd k8s

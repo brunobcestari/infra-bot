@@ -83,9 +83,22 @@ def load_config() -> Config:
         env_key = f"MIKROTIK_{slug.upper()}_PASSWORD"
         password = _get_env(env_key)
 
-        # SSL cert path relative to app/
-        ssl_cert_rel = device_data.get("ssl_cert", f"mikrotik/certs/{slug}.crt")
-        ssl_cert = base_path / ssl_cert_rel
+        # SSL cert path - supports multiple formats:
+        # - Omitted: defaults to {slug}.crt (e.g., "main_router.crt")
+        # - Filename only: "my_cert.crt" → /app/certs/my_cert.crt
+        # - Relative path: "certs/my_cert.crt" → /app/certs/my_cert.crt
+        # - Absolute path: "/custom/path/cert.crt" → /custom/path/cert.crt
+        ssl_cert_path = device_data.get("ssl_cert", f"{slug}.crt")
+
+        if ssl_cert_path.startswith('/'):
+            # Absolute path - use as-is
+            ssl_cert = Path(ssl_cert_path)
+        elif '/' in ssl_cert_path:
+            # Relative path with directory - relative to app/
+            ssl_cert = base_path / ssl_cert_path
+        else:
+            # Just a filename - assume it's in /app/certs/
+            ssl_cert = Path("/app/certs") / ssl_cert_path
 
         if not ssl_cert.exists():
             raise FileNotFoundError(f"SSL certificate not found for {name}: {ssl_cert}")

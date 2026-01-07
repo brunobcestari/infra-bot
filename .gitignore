@@ -2,9 +2,12 @@
 .env
 .env.local
 .env.*.local
-config.json
 data/
 mfa_qr_codes
+
+# Deployment configuration (keep only README)
+deploy/*
+!deploy/README.md
 
 # Kubernetes secrets (keep template, ignore filled version)
 k8s/secret.yaml
@@ -12,10 +15,6 @@ k8s/secret.yaml
 # Config files copied to k8s/ for deployment
 k8s/config.json
 k8s/certs/
-
-# SSL certificates (contain router-specific data)
-app/mikrotik/certs/*.crt
-app/mikrotik/certs/*.pem
 
 # Python
 __pycache__/

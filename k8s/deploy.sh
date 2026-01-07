@@ -4,16 +4,9 @@ set -e
 echo "🚀 Deploying infra-bot to Kubernetes..."
 
 # Check if config.json exists
-if [ ! -f "../config.json" ]; then
-    echo "❌ Error: config.json not found in project root"
-    echo "Please create it from config.example.json"
-    exit 1
-fi
-
-# Check if at least one certificate exists
-if [ ! -f "../app/mikrotik/certs/main_router.crt" ]; then
-    echo "❌ Error: No SSL certificates found in app/mikrotik/certs/"
-    echo "Please add your MikroTik SSL certificates"
+if [ ! -f "../deploy/config.json" ]; then
+    echo "❌ Error: config.json not found in deploy/"
+    echo "Please create it: cp config.example.json deploy/config.json"
     exit 1
 fi
 
