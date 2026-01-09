@@ -8,7 +8,7 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: Recreate  # Important for SQLite database
+    type: Recreate
   selector:
     matchLabels:
       app: infra-bot
@@ -17,8 +17,9 @@ spec:
       labels:
         app: infra-bot
     spec:
-      hostNetwork: true  # Access host network to reach MikroTik routers
-      dnsPolicy: ClusterFirstWithHostNet  # Use cluster DNS even with hostNetwork
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      automountServiceAccountToken: false
       containers:
       - name: telegram-bot
         image: ghcr.io/brunobcestari/infra-bot:latest
@@ -44,10 +45,16 @@ spec:
             memory: "512Mi"
             cpu: "1000m"
         securityContext:
+          runAsNonRoot: true
           runAsUser: 1000
           runAsGroup: 1000
           allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+          seccompProfile:
+            type: RuntimeDefault
       volumes:
       - name: config
         configMap:

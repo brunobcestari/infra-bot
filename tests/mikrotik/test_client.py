@@ -124,6 +124,16 @@ class TestMikroTikClient:
         assert len(leases) == 2
         assert leases[0]["host-name"] == "device1"
 
+    def test_get_services_enabled(self, sample_mikrotik_device, mock_mikrotik_connection, mock_ssl_context):
+        """Should return list of enabled services."""
+        client = MikroTikClient(sample_mikrotik_device)
+
+        with patch.object(client, "_create_connection", return_value=mock_mikrotik_connection):
+            services = client.get_services_enabled()
+
+        assert len(services) == 2
+        assert services[0]["name"] == "ssh"
+
     def test_check_for_updates(self, sample_mikrotik_device, mock_mikrotik_connection, mock_ssl_context):
         """Should check for updates and return result."""
         client = MikroTikClient(sample_mikrotik_device)
