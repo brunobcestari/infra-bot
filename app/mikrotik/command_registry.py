@@ -18,42 +18,48 @@ SIMPLE_COMMANDS = [
         name="status",
         description="System resource status",
         client_method="get_system_resource",
-        formatter="format_status_message"
+        formatter="format_status_message",
+        allow_readonly=True
     ),
 
     SimpleCommand(
         name="interfaces",
         description="Network interfaces",
         client_method="get_interfaces",
-        formatter="format_interfaces_message"
+        formatter="format_interfaces_message",
+        allow_readonly=True
     ),
 
     SimpleCommand(
         name="leases",
         description="DHCP leases",
         client_method="get_dhcp_leases",
-        formatter="format_leases_message"
+        formatter="format_leases_message",
+        allow_readonly=True
     ),
 
     SimpleCommand(
         name="logs",
         description="Recent log entries",
         client_method="get_logs",
-        formatter="format_logs_message"
+        formatter="format_logs_message",
+        allow_readonly=True
     ),
 
     SimpleCommand(
         name="services_enabled",
         description="Enabled IP services",
         client_method="get_services_enabled",
-        formatter="format_services_message"
+        formatter="format_services_message",
+        allow_readonly=True
     ),
 
     SimpleCommand(
         name="updates",
         description="Check for RouterOS updates",
         client_method="check_for_updates",
-        formatter="format_updates_message"
+        formatter="format_updates_message",
+        allow_readonly=True
     ),
 ]
 

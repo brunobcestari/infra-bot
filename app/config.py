@@ -103,7 +103,9 @@ def load_config() -> Config:
         readonly_password = None
         if readonly_username:
             readonly_env_key = f"MIKROTIK_{slug.upper()}_READONLY_PASSWORD"
-            readonly_password = _get_env(readonly_env_key, required=False)
+            readonly_password_str = _get_env(readonly_env_key, required=False)
+            # Set to None if empty string
+            readonly_password = readonly_password_str if readonly_password_str else None
 
         # SSL cert path - supports multiple formats:
         # - Omitted: defaults to {slug}.crt (e.g., "main_router.crt")
