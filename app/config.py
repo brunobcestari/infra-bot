@@ -17,6 +17,9 @@ class MikroTikDevice:
     username: str
     password: str
     ssl_cert: Path
+    # Optional non-admin credentials
+    readonly_username: str | None = None
+    readonly_password: str | None = None
 
 
 @dataclass(frozen=True)
@@ -31,6 +34,9 @@ class Config:
     mfa_session_duration: int = 15
     mfa_db_path: Path = Path("/data/mfa.db")
     mfa_encryption_key: bytes | None = None
+    
+    # Regular (non-admin) user configuration
+    user_ids: frozenset[int] = frozenset()
 
     def get_mikrotik_device(self, slug: str) -> MikroTikDevice | None:
         """Get a MikroTik device by its slug."""
@@ -38,6 +44,14 @@ class Config:
             if device.slug == slug:
                 return device
         return None
+    
+    def is_admin(self, user_id: int) -> bool:
+        """Check if user is an admin."""
+        return user_id in self.admin_ids
+    
+    def is_authorized(self, user_id: int) -> bool:
+        """Check if user is authorized (admin or regular user)."""
+        return user_id in self.admin_ids or user_id in self.user_ids
 
 
 def _slugify(name: str) -> str:
@@ -67,6 +81,7 @@ def load_config() -> Config:
     # Telegram config
     telegram_token = _get_env("TELEGRAM_BOT_TOKEN")
     admin_ids = frozenset(data.get("telegram", {}).get("admin_ids", []))
+    user_ids = frozenset(data.get("telegram", {}).get("user_ids", []))
 
     if not admin_ids:
         raise ValueError("No admin_ids configured in config.json")
@@ -82,6 +97,13 @@ def load_config() -> Config:
         # Password from environment variable: MIKROTIK_<SLUG>_PASSWORD
         env_key = f"MIKROTIK_{slug.upper()}_PASSWORD"
         password = _get_env(env_key)
+        
+        # Optional readonly credentials for non-admin users
+        readonly_username = device_data.get("readonly_username")
+        readonly_password = None
+        if readonly_username:
+            readonly_env_key = f"MIKROTIK_{slug.upper()}_READONLY_PASSWORD"
+            readonly_password = _get_env(readonly_env_key, required=False)
 
         # SSL cert path - supports multiple formats:
         # - Omitted: defaults to {slug}.crt (e.g., "main_router.crt")
@@ -111,6 +133,8 @@ def load_config() -> Config:
             username=device_data["username"],
             password=password,
             ssl_cert=ssl_cert,
+            readonly_username=readonly_username,
+            readonly_password=readonly_password,
         )
         mikrotik_devices.append(device)
 
@@ -145,6 +169,7 @@ def load_config() -> Config:
         mfa_session_duration=mfa_session_duration,
         mfa_db_path=mfa_db_path,
         mfa_encryption_key=mfa_encryption_key,
+        user_ids=user_ids,
     )
 
 

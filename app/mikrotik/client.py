@@ -15,10 +15,20 @@ logger = get_logger(__name__)
 class MikroTikClient:
     """Client for interacting with a MikroTik router."""
 
-    def __init__(self, device: MikroTikDevice):
+    def __init__(self, device: MikroTikDevice, use_readonly: bool = False):
         self.device = device
+        self.use_readonly = use_readonly
         self._ssl_context = self._create_ssl_context()
-        logger.debug(f"Initialized client for device '{device.name}' ({device.host}:{device.port})")
+        
+        # Determine which credentials to use
+        if use_readonly and device.readonly_username and device.readonly_password:
+            self._username = device.readonly_username
+            self._password = device.readonly_password
+            logger.debug(f"Initialized readonly client for device '{device.name}' ({device.host}:{device.port})")
+        else:
+            self._username = device.username
+            self._password = device.password
+            logger.debug(f"Initialized client for device '{device.name}' ({device.host}:{device.port})")
 
     def _create_ssl_context(self) -> ssl.SSLContext:
         """Create SSL context with the device's certificate."""
@@ -36,8 +46,8 @@ class MikroTikClient:
             use_ssl=True,
             ssl_verify=True,
             ssl_verify_hostname=True,
-            username=self.device.username,
-            password=self.device.password,
+            username=self._username,
+            password=self._password,
             plaintext_login=True,
             ssl_context=self._ssl_context,
         )
@@ -148,15 +158,23 @@ class MikroTikClient:
             logger.info(f"Reboot command sent to {self.device.name}")
 
 
-def get_client(slug: str) -> MikroTikClient | None:
-    """Get a MikroTik client by device slug."""
-    logger.debug(f"Getting client for slug: {slug}")
+def get_client(slug: str, use_readonly: bool = False) -> MikroTikClient | None:
+    """Get a MikroTik client by device slug.
+    
+    Args:
+        slug: Device slug
+        use_readonly: If True, use readonly credentials if available
+    
+    Returns:
+        MikroTikClient instance or None if device not found
+    """
+    logger.debug(f"Getting client for slug: {slug}, readonly: {use_readonly}")
     config = get_config()
     device = config.get_mikrotik_device(slug)
     if device is None:
         logger.warning(f"Device not found for slug: {slug}")
         return None
-    return MikroTikClient(device)
+    return MikroTikClient(device, use_readonly=use_readonly)
 
 
 def get_all_clients() -> list[MikroTikClient]:

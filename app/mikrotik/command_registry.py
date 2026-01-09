@@ -120,37 +120,47 @@ def _update_sensitive_actions() -> None:
     middleware.SENSITIVE_ACTIONS = sensitive_actions
 
 
-def get_help_text() -> str:
+def get_help_text(is_admin: bool = True) -> str:
     """Generate help text for all commands.
+    
+    Args:
+        is_admin: If True, show all commands. If False, only show readonly commands.
 
     Returns:
         Formatted markdown help text
     """
     lines = ["*MikroTik Management Bot*\n"]
 
-    # System commands
+    # System commands - filter for readonly users
     if SIMPLE_COMMANDS:
-        lines.append("*System Commands:*")
-        for cmd in SIMPLE_COMMANDS:
-            lines.append(cmd.get_help_text())
-        lines.append("")
+        visible_commands = [cmd for cmd in SIMPLE_COMMANDS if is_admin or cmd.allow_readonly]
+        if visible_commands:
+            lines.append("*System Commands:*")
+            for cmd in visible_commands:
+                lines.append(cmd.get_help_text())
+            lines.append("")
 
-    # Maintenance commands
-    if SENSITIVE_COMMANDS:
+    # Maintenance commands - only for admins
+    if is_admin and SENSITIVE_COMMANDS:
         lines.append("*Maintenance:*")
         for cmd in SENSITIVE_COMMANDS:
             lines.append(cmd.get_help_text())
         lines.append("")
 
     # Footer
-    lines.extend([
-        "*Security:*",
-        "/mfa\\_auth - Authenticate and create MFA session",
-        "/mfa\\_status - Check MFA enrollment status",
-        "",
-        "/help - Show this message",
-        "",
-        "_🔐 Requires MFA authentication_"
-    ])
+    if is_admin:
+        lines.extend([
+            "*Security:*",
+            "/mfa\\_auth - Authenticate and create MFA session",
+            "/mfa\\_status - Check MFA enrollment status",
+            "",
+            "/help - Show this message",
+            "",
+            "_🔐 Requires MFA authentication_"
+        ])
+    else:
+        lines.extend([
+            "/help - Show this message"
+        ])
 
     return "\n".join(lines)

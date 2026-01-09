@@ -11,7 +11,8 @@ from typing import Callable, Optional
 from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
-from ...bot.decorators import restricted, restricted_callback
+from ...bot.decorators import restricted, restricted_callback, authorized, authorized_callback
+from ...config import get_config
 from ..client import get_client
 from .. import formatters
 from .keyboards import device_selection_keyboard, confirmation_keyboard
@@ -81,7 +82,8 @@ class SimpleCommand(CommandBase):
         description: str,
         client_method: str,
         formatter: str,
-        help_emoji: str = ""
+        help_emoji: str = "",
+        allow_readonly: bool = True
     ):
         """Initialize simple command.
 
@@ -91,9 +93,11 @@ class SimpleCommand(CommandBase):
             client_method: Method name on MikroTikClient (e.g., "get_system_resource")
             formatter: Function name in formatters module (e.g., "format_status_message")
             help_emoji: Optional emoji for help text
+            allow_readonly: If True, allow non-admin users to access this command
         """
         super().__init__(name, description, client_method, help_emoji)
         self.formatter = formatter
+        self.allow_readonly = allow_readonly
 
     def register(self, app: Application) -> None:
         """Register command and callback handlers."""
@@ -110,7 +114,10 @@ class SimpleCommand(CommandBase):
 
     def _create_command_handler(self) -> Callable:
         """Create the /command handler."""
-        @restricted
+        # Use authorized decorator if command allows readonly users, else restricted
+        decorator = authorized if self.allow_readonly else restricted
+        
+        @decorator
         async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await update.message.reply_text(
                 f"Select a device to view {self.description.lower()}:",
@@ -123,7 +130,10 @@ class SimpleCommand(CommandBase):
 
     def _create_callback_handler(self) -> Callable:
         """Create the callback handler for device selection."""
-        @restricted_callback
+        # Use authorized_callback decorator if command allows readonly users, else restricted_callback
+        decorator = authorized_callback if self.allow_readonly else restricted_callback
+        
+        @decorator
         async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             query = update.callback_query
             await query.answer()
@@ -133,9 +143,14 @@ class SimpleCommand(CommandBase):
             if len(parts) != 3:
                 return
             slug = parts[2]
+            
+            # Determine if user is admin or regular user
+            config = get_config()
+            user = update.effective_user
+            use_readonly = not config.is_admin(user.id) if user else False
 
-            # Get client
-            client = get_client(slug)
+            # Get client with appropriate credentials
+            client = get_client(slug, use_readonly=use_readonly)
             if not client:
                 await query.edit_message_text(f"Device not found: {slug}")
                 return
