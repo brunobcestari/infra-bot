@@ -20,7 +20,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     user = update.effective_user
     config = get_config()
-    is_admin = config.is_admin(user.id) if user else False
+    show_admin_commands = config.is_admin(user.id) if user else False
     
-    help_text = get_help_text(is_admin=is_admin)
+    help_text = get_help_text(show_admin_commands=show_admin_commands)
     await update.message.reply_text(help_text, parse_mode='Markdown')

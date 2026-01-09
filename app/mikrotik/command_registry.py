@@ -126,11 +126,11 @@ def _update_sensitive_actions() -> None:
     middleware.SENSITIVE_ACTIONS = sensitive_actions
 
 
-def get_help_text(is_admin: bool = True) -> str:
+def get_help_text(show_admin_commands: bool = True) -> str:
     """Generate help text for all commands.
     
     Args:
-        is_admin: If True, show all commands. If False, only show readonly commands.
+        show_admin_commands: If True, show all commands. If False, only show readonly commands.
 
     Returns:
         Formatted markdown help text
@@ -139,7 +139,7 @@ def get_help_text(is_admin: bool = True) -> str:
 
     # System commands - filter for readonly users
     if SIMPLE_COMMANDS:
-        visible_commands = [cmd for cmd in SIMPLE_COMMANDS if is_admin or cmd.allow_readonly]
+        visible_commands = [cmd for cmd in SIMPLE_COMMANDS if show_admin_commands or cmd.allow_readonly]
         if visible_commands:
             lines.append("*System Commands:*")
             for cmd in visible_commands:
@@ -147,14 +147,14 @@ def get_help_text(is_admin: bool = True) -> str:
             lines.append("")
 
     # Maintenance commands - only for admins
-    if is_admin and SENSITIVE_COMMANDS:
+    if show_admin_commands and SENSITIVE_COMMANDS:
         lines.append("*Maintenance:*")
         for cmd in SENSITIVE_COMMANDS:
             lines.append(cmd.get_help_text())
         lines.append("")
 
     # Footer
-    if is_admin:
+    if show_admin_commands:
         lines.extend([
             "*Security:*",
             "/mfa\\_auth - Authenticate and create MFA session",

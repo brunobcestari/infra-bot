@@ -147,7 +147,8 @@ class SimpleCommand(CommandBase):
             # Determine if user is admin or regular user
             config = get_config()
             user = update.effective_user
-            # User is guaranteed to exist by decorator
+            # Decorator ensures user exists, but verify for type safety
+            assert user is not None, "User should be validated by decorator"
             use_readonly = not config.is_admin(user.id)
 
             # Get client with appropriate credentials
