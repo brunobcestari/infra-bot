@@ -204,27 +204,27 @@ class SensitiveCommand(CommandBase):
         # Command handler: /reboot, /upgrade (with MFA)
         app.add_handler(CommandHandler(self.name, self._create_command_handler()))
 
-        # Callback: Device selection → show confirmation
+        # Callback: Device selection → show confirmation (pattern: mt:upgrade_confirm:slug)
         app.add_handler(
             CallbackQueryHandler(
                 self._create_confirm_handler(),
-                pattern=f"^{self.callback_prefix}_confirm:.*$"
+                pattern=f"^mt:{self.name}_confirm:.*$"  # Fixed pattern
             )
         )
 
-        # Callback: User clicked "Yes"
+        # Callback: User clicked "Yes" (pattern: mt:upgrade_yes:slug)
         app.add_handler(
             CallbackQueryHandler(
                 self._create_execute_handler(),
-                pattern=f"^{self.callback_prefix}_yes:.*$"
+                pattern=f"^mt:{self.name}_yes:.*$"  # Fixed pattern
             )
         )
 
-        # Callback: User clicked "Cancel"
+        # Callback: User clicked "Cancel" (pattern: mt:upgrade_no:slug)
         app.add_handler(
             CallbackQueryHandler(
                 self._create_cancel_handler(),
-                pattern=f"^{self.callback_prefix}_no:.*$"
+                pattern=f"^mt:{self.name}_no:.*$"  # Fixed pattern
             )
         )
 
@@ -248,11 +248,12 @@ class SensitiveCommand(CommandBase):
             query = update.callback_query
             await query.answer()
 
-            # Parse slug
+            # Parse slug from callback data: "mt:upgrade_confirm:router_slug"
             parts = query.data.split(":")
-            if len(parts) != 2:
+            if len(parts) != 3:  # Changed from 2 to 3
+                logger.warning(f"Invalid callback data format: {query.data}")
                 return
-            slug = parts[1]
+            slug = parts[2]  # Changed from parts[1] to parts[2]
 
             # Get client
             client = get_client(slug)
@@ -285,11 +286,12 @@ class SensitiveCommand(CommandBase):
             query = update.callback_query
             await query.answer()
 
-            # Parse slug
+            # Parse slug from callback data: "mt:upgrade_yes:router_slug"
             parts = query.data.split(":")
-            if len(parts) != 2:
+            if len(parts) != 3:  # Changed from 2 to 3
+                logger.warning(f"Invalid callback data format: {query.data}")
                 return
-            slug = parts[1]
+            slug = parts[2]  # Changed from parts[1] to parts[2]
 
             # MFA recheck for sensitive action
             action = f"{self.name}_yes"
@@ -323,7 +325,7 @@ class SensitiveCommand(CommandBase):
         return handler
 
     def _create_cancel_handler(self) -> Callable:
-        """Create handler for cancellation."""
+        """Create handler for cancel button."""
         @restricted_callback
         async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             query = update.callback_query

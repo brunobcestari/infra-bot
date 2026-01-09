@@ -1,12 +1,5 @@
 # How to Add New Commands - The EASY Way! 🚀
 
-## TODO:
-
-### ISSUES:
-
-1. Confirm commands are not working
-
-/upgrade -> ask for MFA -> input MFA -> Verification Successful -> Run command Again -> Show Devices -> Click on the devices -> NOTHING HAPPENS!!
 
 ## TL;DR
 
