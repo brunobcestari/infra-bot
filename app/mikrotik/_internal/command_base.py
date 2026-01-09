@@ -137,7 +137,7 @@ class SimpleCommand(CommandBase):
         async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             query = update.callback_query
             await query.answer()
-
+            
             # Parse slug from callback data: "mt:status:router_slug"
             parts = query.data.split(":")
             if len(parts) != 3:
@@ -147,8 +147,8 @@ class SimpleCommand(CommandBase):
             # Determine if user is admin or regular user
             config = get_config()
             user = update.effective_user
-            # User is guaranteed to exist by decorator, but check for safety
-            use_readonly = not config.is_admin(user.id) if user and user.id else False
+            # User is guaranteed to exist by decorator
+            use_readonly = not config.is_admin(user.id)
 
             # Get client with appropriate credentials
             client = get_client(slug, use_readonly=use_readonly)
