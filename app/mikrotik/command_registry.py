@@ -18,42 +18,48 @@ SIMPLE_COMMANDS = [
         name="status",
         description="System resource status",
         client_method="get_system_resource",
-        formatter="format_status_message"
+        formatter="format_status_message",
+        allow_readonly=True
     ),
 
     SimpleCommand(
         name="interfaces",
         description="Network interfaces",
         client_method="get_interfaces",
-        formatter="format_interfaces_message"
+        formatter="format_interfaces_message",
+        allow_readonly=True
     ),
 
     SimpleCommand(
         name="leases",
         description="DHCP leases",
         client_method="get_dhcp_leases",
-        formatter="format_leases_message"
+        formatter="format_leases_message",
+        allow_readonly=True
     ),
 
     SimpleCommand(
         name="logs",
         description="Recent log entries",
         client_method="get_logs",
-        formatter="format_logs_message"
+        formatter="format_logs_message",
+        allow_readonly=True
     ),
 
     SimpleCommand(
         name="services_enabled",
         description="Enabled IP services",
         client_method="get_services_enabled",
-        formatter="format_services_message"
+        formatter="format_services_message",
+        allow_readonly=True
     ),
 
     SimpleCommand(
         name="updates",
         description="Check for RouterOS updates",
         client_method="check_for_updates",
-        formatter="format_updates_message"
+        formatter="format_updates_message",
+        allow_readonly=True
     ),
 ]
 
@@ -120,37 +126,47 @@ def _update_sensitive_actions() -> None:
     middleware.SENSITIVE_ACTIONS = sensitive_actions
 
 
-def get_help_text() -> str:
+def get_help_text(show_admin_commands: bool = True) -> str:
     """Generate help text for all commands.
+    
+    Args:
+        show_admin_commands: If True, show all commands. If False, only show readonly commands.
 
     Returns:
         Formatted markdown help text
     """
     lines = ["*MikroTik Management Bot*\n"]
 
-    # System commands
+    # System commands - filter for readonly users
     if SIMPLE_COMMANDS:
-        lines.append("*System Commands:*")
-        for cmd in SIMPLE_COMMANDS:
-            lines.append(cmd.get_help_text())
-        lines.append("")
+        visible_commands = [cmd for cmd in SIMPLE_COMMANDS if show_admin_commands or cmd.allow_readonly]
+        if visible_commands:
+            lines.append("*System Commands:*")
+            for cmd in visible_commands:
+                lines.append(cmd.get_help_text())
+            lines.append("")
 
-    # Maintenance commands
-    if SENSITIVE_COMMANDS:
+    # Maintenance commands - only for admins
+    if show_admin_commands and SENSITIVE_COMMANDS:
         lines.append("*Maintenance:*")
         for cmd in SENSITIVE_COMMANDS:
             lines.append(cmd.get_help_text())
         lines.append("")
 
     # Footer
-    lines.extend([
-        "*Security:*",
-        "/mfa\\_auth - Authenticate and create MFA session",
-        "/mfa\\_status - Check MFA enrollment status",
-        "",
-        "/help - Show this message",
-        "",
-        "_🔐 Requires MFA authentication_"
-    ])
+    if show_admin_commands:
+        lines.extend([
+            "*Security:*",
+            "/mfa\\_auth - Authenticate and create MFA session",
+            "/mfa\\_status - Check MFA enrollment status",
+            "",
+            "/help - Show this message",
+            "",
+            "_🔐 Requires MFA authentication_"
+        ])
+    else:
+        lines.extend([
+            "/help - Show this message"
+        ])
 
     return "\n".join(lines)

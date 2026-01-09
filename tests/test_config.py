@@ -71,6 +71,33 @@ class TestMikroTikDevice:
     def test_device_is_frozen(self, sample_mikrotik_device):
         with pytest.raises(AttributeError):
             sample_mikrotik_device.name = "New Name"
+    
+    def test_device_with_readonly_credentials(self, tmp_path):
+        """Test device creation with readonly credentials."""
+        from app.config import MikroTikDevice
+        
+        cert_path = tmp_path / "test.crt"
+        cert_path.touch()
+        
+        device = MikroTikDevice(
+            name="Test Router",
+            slug="test_router",
+            host="192.168.1.1",
+            port=8729,
+            username="admin",
+            password="admin-pass",
+            ssl_cert=cert_path,
+            readonly_username="readonly",
+            readonly_password="readonly-pass",
+        )
+        
+        assert device.readonly_username == "readonly"
+        assert device.readonly_password == "readonly-pass"
+    
+    def test_device_without_readonly_credentials(self, sample_mikrotik_device):
+        """Test device without readonly credentials has None values."""
+        assert sample_mikrotik_device.readonly_username is None
+        assert sample_mikrotik_device.readonly_password is None
 
 
 class TestConfig:
@@ -93,6 +120,48 @@ class TestConfig:
     def test_config_is_frozen(self, sample_config):
         with pytest.raises(AttributeError):
             sample_config.telegram_token = "new-token"
+    
+    def test_is_admin_true(self, sample_config):
+        """Test is_admin returns True for admin users."""
+        assert sample_config.is_admin(123456789) is True
+    
+    def test_is_admin_false(self, sample_config):
+        """Test is_admin returns False for non-admin users."""
+        assert sample_config.is_admin(999999999) is False
+    
+    def test_is_authorized_admin(self, sample_config):
+        """Test is_authorized returns True for admin users."""
+        assert sample_config.is_authorized(123456789) is True
+    
+    def test_is_authorized_regular_user(self, tmp_path):
+        """Test is_authorized returns True for regular users."""
+        from app.config import Config, MikroTikDevice
+        
+        cert_path = tmp_path / "test.crt"
+        cert_path.touch()
+        
+        device = MikroTikDevice(
+            name="Test",
+            slug="test",
+            host="192.168.1.1",
+            port=8729,
+            username="admin",
+            password="pass",
+            ssl_cert=cert_path,
+        )
+        
+        config = Config(
+            telegram_token="test",
+            admin_ids=frozenset([123456789]),
+            user_ids=frozenset([111111111]),
+            mikrotik_devices=(device,),
+        )
+        
+        assert config.is_authorized(111111111) is True
+    
+    def test_is_authorized_false(self, sample_config):
+        """Test is_authorized returns False for unauthorized users."""
+        assert sample_config.is_authorized(999999999) is False
 
 
 class TestLoadConfig:

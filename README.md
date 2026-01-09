@@ -5,10 +5,11 @@ A Telegram bot for managing network infrastructure. Currently supports MikroTik 
 ## Features
 
 - **Multi-device support** - Manage multiple routers from one bot
+- **User roles** - Admin users with full access, regular users with read-only access
 - **System monitoring** - CPU, memory, disk, uptime
 - **Network info** - Interfaces, DHCP leases, logs
-- **Maintenance** - Check/install updates, reboot
-- **Secure** - Admin-only access, SSL/TLS connections, MFA for critical operations
+- **Maintenance** - Check/install updates, reboot (admin only)
+- **Secure** - Role-based access, SSL/TLS connections, MFA for critical operations
 
 ## Setup
 
@@ -40,7 +41,8 @@ Edit `deploy/config.json`:
 ```json
 {
   "telegram": {
-    "admin_ids": [YOUR_TELEGRAM_USER_ID]
+    "admin_ids": [YOUR_TELEGRAM_USER_ID],
+    "user_ids": [OPTIONAL_READONLY_USER_ID]
   },
   "mfa": {
     "enabled": true,
@@ -54,7 +56,8 @@ Edit `deploy/config.json`:
         "host": "192.168.88.1",
         "port": 8729,
         "username": "telegram-bot",
-        "ssl_cert": "main_router.crt"
+        "ssl_cert": "main_router.crt",
+        "readonly_username": "telegram-readonly"
       }
     ]
   }
@@ -66,6 +69,7 @@ Edit `deploy/config.json`:
 ```bash
 TELEGRAM_BOT_TOKEN="your-bot-token"
 MIKROTIK_MAIN_ROUTER_PASSWORD="your-password"
+MIKROTIK_MAIN_ROUTER_READONLY_PASSWORD="your-readonly-password"
 MFA_ENCRYPTION_KEY="$(openssl rand -base64 32)"
 ```
 
@@ -77,21 +81,30 @@ MFA_ENCRYPTION_KEY="$(openssl rand -base64 32)"
 
 Copy the `.crt` file to `deploy/certs/`.
 
-### 6. Create MikroTik API user
+### 6. Create MikroTik API users
 
+**Admin user (for admin Telegram users):**
 ```
 /user group add name=telegram-api policy=read,write,api,rest-api,!ftp,!ssh,!telnet,!policy,!password
 /user add name=telegram-bot group=telegram-api password=your-password
 ```
 
-### 7. Enroll users in MFA
+**Readonly user (optional, for non-admin Telegram users):**
+```
+/user group add name=telegram-readonly policy=read,api,!ftp,!ssh,!telnet,!policy,!password,!write
+/user add name=telegram-readonly group=telegram-readonly password=your-readonly-password
+```
+
+### 7. Enroll admin users in MFA
+
+**Note:** Only admin users (listed in `admin_ids`) require MFA enrollment. Regular users (listed in `user_ids`) do not need MFA as they can only access read-only commands.
 
 ```bash
-# Enroll a user by Telegram ID
-poetry run python scripts/manage_mfa.py enroll YOUR_TELEGRAM_USER_ID
+# Enroll an admin user by Telegram ID
+poetry run python scripts/manage_mfa.py enroll YOUR_ADMIN_TELEGRAM_USER_ID
 
 # Or with Docker
-docker-compose exec telegram_bot python scripts/manage_mfa.py enroll YOUR_TELEGRAM_USER_ID
+docker-compose exec telegram_bot python scripts/manage_mfa.py enroll YOUR_ADMIN_TELEGRAM_USER_ID
 ```
 
 Scan the QR code with your authenticator app (Google Authenticator, Authy, etc.).
@@ -106,19 +119,39 @@ poetry run python -m app.main
 docker compose up --build
 ```
 
+## User Roles
+
+The bot supports two types of users:
+
+### Admin Users
+- Full access to all commands
+- Can perform maintenance operations (upgrade, reboot)
+- Require MFA enrollment for sensitive operations
+- Connect to MikroTik using admin credentials
+- Configured in `telegram.admin_ids`
+
+### Regular Users (Optional)
+- Read-only access to monitoring commands
+- Cannot perform maintenance operations
+- Do not require MFA (no sensitive operations available)
+- Connect to MikroTik using readonly credentials (if configured)
+- Configured in `telegram.user_ids`
+
+If no readonly credentials are configured on the MikroTik device, regular users will connect using the admin credentials but will only see read-only commands in the bot.
+
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `/status` | System resources |
-| `/interfaces` | Network interfaces |
-| `/leases` | DHCP leases |
-| `/logs` | Recent logs |
-| `/updates` | Check for updates |
-| `/upgrade` | Install updates (requires MFA) |
-| `/reboot` | Reboot device (requires MFA) |
-| `/mfa_auth` | Authenticate and create/refresh MFA session |
-| `/mfa_status` | Check MFA enrollment status |
+| Command | Admin | Regular User | Description |
+|---------|-------|--------------|-------------|
+| `/status` | ✅ | ✅ | System resources |
+| `/interfaces` | ✅ | ✅ | Network interfaces |
+| `/leases` | ✅ | ✅ | DHCP leases |
+| `/logs` | ✅ | ✅ | Recent logs |
+| `/updates` | ✅ | ✅ | Check for updates |
+| `/upgrade` | ✅ | ❌ | Install updates (requires MFA) |
+| `/reboot` | ✅ | ❌ | Reboot device (requires MFA) |
+| `/mfa_auth` | ✅ | ❌ | Authenticate and create/refresh MFA session |
+| `/mfa_status` | ✅ | ❌ | Check MFA enrollment status |
 
 ## Tests
 
