@@ -1,18 +1,12 @@
 """Telegram bot for infrastructure management."""
 
-import logging
-
 from .bot import create_bot
 from .mikrotik import register_handlers as register_mikrotik_handlers
 from .mfa import initialize_mfa_system, register_mfa_handlers, get_session_manager
 from .config import get_config
+from ._internal import get_logger
 
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
-logger = logging.getLogger(__name__)
-logging.getLogger("httpx").setLevel(logging.WARNING)
+logger = get_logger(__name__)
 
 
 async def periodic_cleanup(context) -> None:

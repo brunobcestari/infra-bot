@@ -2,6 +2,7 @@
 
 import json
 import os
+import ssl
 from pathlib import Path
 from typing import Any, Generator
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -12,6 +13,13 @@ from app.config import Config, MikroTikDevice
 
 
 # --- Environment Fixtures ---
+
+@pytest.fixture
+def mock_ssl_context():
+    """Mock SSL context creation."""
+    with patch.object(ssl, "create_default_context") as mock_ctx:
+        mock_ctx.return_value = MagicMock()
+        yield mock_ctx
 
 @pytest.fixture
 def mock_env(tmp_path: Path) -> Generator[dict[str, str], None, None]:
@@ -257,6 +265,24 @@ def mock_mikrotik_api() -> MagicMock:
     }]
     update_resource.call = MagicMock()
 
+    services_resource = MagicMock()
+    services_resource.get.return_value = [
+        {
+            "name": "ssh",
+            "port": "22",
+            "proto": "tcp",
+            "address": "0.0.0.0",
+            "certificate": "none",
+        },
+        {
+            "name": "www-ssl",
+            "port": "443",
+            "proto": "tcp",
+            "address": "0.0.0.0",
+            "certificate": "router-cert",
+        },
+    ]
+
     system_control = MagicMock()
     system_control.call = MagicMock()
 
@@ -267,6 +293,7 @@ def mock_mikrotik_api() -> MagicMock:
             "/interface": interface_resource,
             "/log": log_resource,
             "/ip/dhcp-server/lease": dhcp_resource,
+            "/ip/service": services_resource,
             "/system/package/update": update_resource,
             "/system": system_control,
         }
