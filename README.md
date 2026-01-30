@@ -27,11 +27,13 @@ cp config.example.json deploy/config.json
 cp .env.example .env
 ```
 
-Add your MikroTik SSL certificates:
+Create the certs directory:
 
 ```bash
-cp /path/to/your/certs/*.crt deploy/certs/
+mkdir -p deploy/certs
 ```
+
+You'll add MikroTik SSL certificates here in step 5.
 
 ### 3. Configure your devices
 
@@ -54,7 +56,7 @@ Edit `deploy/config.json`:
         "host": "192.168.88.1",
         "port": 8729,
         "username": "telegram-bot",
-        "ssl_cert": "main_router.crt"
+        "ssl_cert": "api-cert.crt"
       }
     ]
   }
@@ -69,20 +71,69 @@ MIKROTIK_MAIN_ROUTER_PASSWORD="your-password"
 MFA_ENCRYPTION_KEY="$(openssl rand -base64 32)"
 ```
 
-### 5. Export SSL certificate from MikroTik
+### 5. Create and configure SSL certificate on MikroTik
 
-```
-/certificate export-certificate [your-api-cert] file-name=api
+The bot connects to MikroTik using the API-SSL service (port 8729 by default), which requires a certificate.
+
+#### Create a self-signed certificate
+
+```routeros
+# Create a self-signed certificate (valid for 10 years)
+/certificate add name=api-cert common-name=router.local key-size=2048 \
+    days-valid=3650 key-usage=digital-signature,key-encipherment \
+    subject-alt-name=IP:192.168.88.1
+
+# Sign the certificate
+/certificate sign api-cert
+
+# Wait a few seconds for signing to complete, then verify
+/certificate print
 ```
 
-Copy the `.crt` file to `deploy/certs/`.
+#### Enable API-SSL and assign the certificate
+
+```routeros
+# Enable API-SSL service
+/ip service set api-ssl disabled=no
+
+# Set the certificate for API-SSL (use the certificate name from above)
+/ip service set api-ssl certificate=api-cert
+
+# Optionally restrict API-SSL to specific IPs
+/ip service set api-ssl address=192.168.88.0/24
+```
+
+#### Export the certificate for the bot
+
+```routeros
+# Export only the public certificate (.crt file)
+/certificate export-certificate api-cert file-name=api-cert
+```
+
+Use SFTP/SCP to download the `.crt` file from MikroTik's `/` directory, then copy it to `deploy/certs/` on your bot server.
 
 ### 6. Create MikroTik API user
 
+Create a dedicated user with minimal required permissions:
+
+```routeros
+# Create a restricted user group for the bot
+/user group add name=telegram-api \
+    policy=read,write,api,rest-api,!ftp,!ssh,!telnet,!policy,!password,!sensitive
+
+# Create the bot user
+/user add name=telegram-bot group=telegram-api password=your-strong-password
 ```
-/user group add name=telegram-api policy=read,write,api,rest-api,!ftp,!ssh,!telnet,!policy,!password
-/user add name=telegram-bot group=telegram-api password=your-password
-```
+
+**Required permissions explained:**
+- `read` - Read configuration and status
+- `write` - Execute commands (reboot, upgrade)
+- `api` - Access the API service
+- `rest-api` - REST API access
+- `!ftp,!ssh,!telnet` - Deny interactive access
+- `!policy` - Prevent modifying user policies
+- `!password` - Prevent changing passwords
+- `!sensitive` - Hide sensitive data
 
 ### 7. Enroll users in MFA
 
@@ -195,7 +246,7 @@ The dev compose file:
 | **Config** | `deploy/config.json` | ConfigMap (from `deploy/`) |
 | **Secrets** | `.env` file | Kubernetes Secret |
 | **Certs** | `deploy/certs/` | ConfigMap (from `deploy/`) |
-| **Data** | Local volume (`./data`) | NFS PersistentVolume |
+| **Data** | Local volume (`./data`) | Local NVMe PersistentVolume |
 | **Network** | Host network | Host network |
 | **Resources** | 512MB / 1.0 CPU | 512MB / 1.0 CPU |
 | **User** | 1000:1000 | 1000:1000 |

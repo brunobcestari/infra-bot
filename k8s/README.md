@@ -8,7 +8,7 @@ Tested with k3s cluster running on Raspberry Pi.
 The bot is deployed using:
 - **Container Registry**: GitHub Container Registry (ghcr.io)
 - **Multi-arch Support**: Built for both amd64 and arm64 (Raspberry Pi)
-- **Storage**: NFS-based persistent storage for MFA database (update the pvc.yaml file)
+- **Storage**: Local NVMe persistent storage for MFA database (uses `local-nvme` storage class)
 - **Security**: All sensitive data passed via Secrets and ConfigMaps
 
 
@@ -68,7 +68,7 @@ Example:
         "host": "192.168.88.1",
         "port": 8729,
         "username": "telegram-bot",
-        "ssl_cert": "main_router.crt"
+        "ssl_cert": "api-cert.crt"
       }
     ]
   }
@@ -117,13 +117,13 @@ kubectl create configmap infra-bot-config \
 
 # Create ConfigMap from SSL certificates
 kubectl create configmap infra-bot-certs \
-  --from-file=main_router.crt=../deploy/certs/main_router.crt \
+  --from-file=api-cert.crt=../deploy/certs/api-cert.crt \
   -n infra-bot
 
 # If you have multiple certificates, add them all:
 # kubectl create configmap infra-bot-certs \
-#   --from-file=main_router.crt=../deploy/certs/main_router.crt \
-#   --from-file=office.crt=../deploy/certs/office.crt \
+#   --from-file=api-cert.crt=../deploy/certs/api-cert.crt \
+#   --from-file=office-api-cert.crt=../deploy/certs/office-api-cert.crt \
 #   -n infra-bot
 ```
 
@@ -228,10 +228,12 @@ kubectl get pvc -n infra-bot
 kubectl describe pvc infra-bot-data -n infra-bot
 ```
 
-Ensure your NFS storage class is working:
+Ensure your storage class is available:
 ```bash
 kubectl get storageclass
 ```
+
+The deployment uses `local-nvme` storage class and requires a node with `storage-tier: nvme` label.
 
 ### Verify mounted files
 
@@ -240,7 +242,7 @@ kubectl get storageclass
 kubectl exec -n infra-bot deployment/infra-bot -- cat /app/config.json
 
 # Check certificates
-kubectl exec -n infra-bot deployment/infra-bot -- ls -la /app/mikrotik/certs/
+kubectl exec -n infra-bot deployment/infra-bot -- ls -la /app/certs/
 
 # Check data directory
 kubectl exec -n infra-bot deployment/infra-bot -- ls -la /data/

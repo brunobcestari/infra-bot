@@ -6,8 +6,7 @@ namespace: infra-bot
 resources:
   - namespace.yaml
   - secret.yaml
-  - pv.yaml
-  - pvc.yaml
+  - pvc.yaml  # Uses local-nvme storage class with dynamic provisioning
   - deployment.yaml
 
 # Generate ConfigMaps from local files (synced from parent directory)
@@ -17,7 +16,7 @@ configMapGenerator:
       - config.json
   - name: infra-bot-certs
     files:
-      - certs/main_router.crt
+      - certs/api-cert.crt
       # Add more certificates as needed
 
 # Add common labels to all resources

@@ -5,9 +5,8 @@ metadata:
   namespace: infra-bot
 spec:
   accessModes:
-    - ReadWriteMany
-  storageClassName: ""  # Use static PV instead of dynamic provisioning
-  volumeName: infra-bot-pv
+    - ReadWriteOnce
+  storageClassName: local-nvme
   resources:
     requests:
       storage: 1Gi

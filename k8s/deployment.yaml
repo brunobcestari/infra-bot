@@ -20,9 +20,11 @@ spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       automountServiceAccountToken: false
+      nodeSelector:
+        storage-tier: nvme
       containers:
       - name: telegram-bot
-        image: ghcr.io/brunobcestari/infra-bot:latest
+        image: ghcr.io/brunobcestari/infra-bot:0.2.0
         imagePullPolicy: Always
         envFrom:
         - secretRef:

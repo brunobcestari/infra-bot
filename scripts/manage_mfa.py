@@ -112,8 +112,12 @@ def cmd_enroll(user_id: int) -> None:
         print(f"\n    {secret}\n")
     print("-" * 70)
 
-    # Save QR code as PNG
-    qr_dir = Path("mfa_qr_codes")
+    # Save QR code as PNG to writable location
+    # Use /data if running in container with read-only filesystem, otherwise use local dir
+    if Path("/data").exists() and os.access("/data", os.W_OK):
+        qr_dir = Path("/data/mfa_qr_codes")
+    else:
+        qr_dir = Path("mfa_qr_codes")
     qr_dir.mkdir(exist_ok=True)
     qr_path = qr_dir / f"{user_id}.png"
 
@@ -247,8 +251,12 @@ def cmd_export_qr(user_id: int) -> None:
     ascii_qr = generate_qr_code_ascii(uri)
     print(ascii_qr)
 
-    # Save as PNG
-    qr_dir = Path("mfa_qr_codes")
+    # Save as PNG to writable location
+    # Use /data if running in container with read-only filesystem, otherwise use local dir
+    if Path("/data").exists() and os.access("/data", os.W_OK):
+        qr_dir = Path("/data/mfa_qr_codes")
+    else:
+        qr_dir = Path("mfa_qr_codes")
     qr_dir.mkdir(exist_ok=True)
     qr_path = qr_dir / f"{user_id}.png"
 
